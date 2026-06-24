@@ -1,8 +1,9 @@
 name: "Ism7MQTT (self-built)"
-description: "Direct communication with a Wolf ISM7 module. Self-contained build, no upstream image dependency."
+description: "Direct communication with a Wolf ISM7 module. Self-built image published to your own GHCR."
 version: "1.0.0"
 slug: "ism7mqtt"
 init: false
+image: "ghcr.io/aschwarz1984/ism7mqtt-{arch}"
 url: https://github.com/aschwarz1984/my-ism7-addon
 arch:
   - aarch64

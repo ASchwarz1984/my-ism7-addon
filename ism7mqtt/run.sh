@@ -35,7 +35,7 @@ function start_ism7mqtt() {
       mosquitto_pub -h "$ISM7_MQTTHOST" -p "$ISM7_MQTTPORT" --username "$ISM7_MQTTUSERNAME" --pw "$ISM7_MQTTPASSWORD" -t "${line}" -r -n
     done || true
 
-    if [ $ISM7_INTERVAL = "" ]; then
+    if [ -z "$ISM7_INTERVAL" ]; then
         export ISM7_INTERVAL=60
     fi
 
@@ -47,7 +47,7 @@ function start_ism7mqtt() {
         /app/ism7config -t $parameters | ts
         if ! [ -f $parameters ]; then
             echo "Parameter file creation seems to have failed. Please check the add-on log and your ISM7 connection."
-            exit -1
+            exit 1
         fi
     fi
 

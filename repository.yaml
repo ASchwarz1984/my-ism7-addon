@@ -1,0 +1,4 @@
+# https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
+name: aschwarz1984 ISM7 Add-on Repository
+url: 'https://github.com/aschwarz1984/my-ism7-addon'
+maintainer: aschwarz1984

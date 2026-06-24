@@ -1,0 +1,12 @@
+# Docker / build
+**/bin/
+**/obj/
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,10 @@
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base:latest
+  amd64: ghcr.io/home-assistant/amd64-base:latest
+  armv7: ghcr.io/home-assistant/armv7-base:latest
+args:
+  VERSION: "1.0.0"
+labels:
+  org.opencontainers.image.title: "Ism7MQTT (self-built)"
+  org.opencontainers.image.source: "https://github.com/aschwarz1984/my-ism7-addon"
+  org.opencontainers.image.licenses: "GPL-3.0-only"

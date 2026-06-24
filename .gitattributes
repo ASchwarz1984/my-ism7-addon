@@ -1,0 +1,16 @@
+# Ensure shell scripts always use LF so they run in the Linux container
+*.sh text eol=lf
+run.sh text eol=lf
+Dockerfile text eol=lf
+
+# Normalize other text files
+*.yaml text
+*.yml text
+*.md text
+*.cs text
+*.csproj text
+*.json text
+
+# Treat binary assets as binary
+*.pfx binary
+*.png binary

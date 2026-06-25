@@ -157,9 +157,11 @@ namespace ism7mqtt
                                 _haDiscovery = new HaDiscovery(config, mqttClient, discoveryId, localizer)
                                 {
                                     EnableDebug = enableDebug,
-                                    QosLevel = _qos
+                                    QosLevel = _qos,
+                                    Ip = ip,
+                                    BridgeStateTopic = bridgeStateTopic
                                 };
-                                await _haDiscovery.PublishBridgeAvailabilityAsync(ip, bridgeStateTopic, c);
+                                // PublishDiscoveryInfo also (re)publishes the bridge sensor
                                 await _haDiscovery.PublishDiscoveryInfo(c);
                             }
                         };

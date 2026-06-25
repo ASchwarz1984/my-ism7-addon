@@ -26,6 +26,10 @@ namespace ism7mqtt.HomeAssistant
 
         public MqttQualityOfServiceLevel QosLevel { get; set; }
 
+        public string Ip { get; set; }
+
+        public string BridgeStateTopic { get; set; }
+
         public HaDiscovery(Ism7Config config, IMqttClient mqttClient, string discoveryId, Ism7Localizer localizer)
         {
             _config = config;
@@ -39,6 +43,12 @@ namespace ism7mqtt.HomeAssistant
             if (EnableDebug)
             {
                 Console.WriteLine($"Publishing HA Discovery info for ID {_discoveryId}");
+            }
+            // the bridge connectivity sensor must be (re)published together with the
+            // rest of the discovery so it survives HA restarts / MQTT integration reloads
+            if (!String.IsNullOrEmpty(Ip) && !String.IsNullOrEmpty(BridgeStateTopic))
+            {
+                await PublishBridgeAvailabilityAsync(cancellationToken);
             }
             foreach (var message in GetDiscoveryInfo())
             {
@@ -58,8 +68,10 @@ namespace ism7mqtt.HomeAssistant
             return _config.Devices.SelectMany(GetDiscoveryInfo);
         }
 
-        public async Task PublishBridgeAvailabilityAsync(string ip, string stateTopic, CancellationToken cancellationToken)
+        public async Task PublishBridgeAvailabilityAsync(CancellationToken cancellationToken)
         {
+            var ip = Ip;
+            var stateTopic = BridgeStateTopic;
             var objectId = LaunderHomeassistantId($"{_discoveryId}_bridge_connectivity");
             var discoveryTopic = $"homeassistant/binary_sensor/{objectId}/config";
             var message = new JsonObject

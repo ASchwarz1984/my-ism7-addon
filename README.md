@@ -59,6 +59,27 @@ which can cause connection drops or missing updates. Mitigations:
   (via the File editor add-on) and remove whole device sections or individual
   numeric parameter ids, then restart.
 
+## Reducing load (and coexisting with the Smartset cloud app)
+
+The ISM7 only accepts **one local connection**, so you can't run the Smartset
+**local** app at the same time as this add-on. The Smartset **cloud** app, however,
+uses the ISM7's separate portal connection — it can run alongside this add-on, but
+the small microcontroller is easily overwhelmed and you'll see drops/missing values
+if the add-on polls too hard. To keep things stable:
+
+- **Raise `interval`.** Heating values change slowly. `120` (2 min) is a good gentle
+  default and is plenty for automations on outside/water temperature; use `60` only
+  if you really want snappier updates. This is the single safest knob.
+- **Trim the parameter file** (see above). This is the biggest load reducer — keep
+  only the values your dashboards/automations actually use. Your install logged the
+  ">150 parameters" warning, so there's a lot to cut here.
+- **Use Ethernet** and consider disabling the Wolf portal connection if you don't
+  need the cloud app.
+
+For temperature-driven automations specifically, a 120 s refresh is more than
+adequate — outside temperature barely moves on that timescale, and water/flow
+temperatures are not used for sub-minute decisions.
+
 ## Updating the vendored source
 
 The C# program lives under [`ism7mqtt/src/`](ism7mqtt/src/). To pull in upstream

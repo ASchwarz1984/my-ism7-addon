@@ -134,7 +134,7 @@ namespace ism7mqtt
 
         private async Task FillPipeAsync(PipeWriter target, CancellationToken cancellationToken)
         {
-            const int bufferSize = 512;
+            const int bufferSize = 8192;
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
@@ -230,10 +230,7 @@ namespace ism7mqtt
 
         private static string HexEncode(ReadOnlySpan<byte> data)
         {
-            StringBuilder s = new StringBuilder(data.Length*2);
-            foreach (byte b in data)
-                s.Append(b.ToString("x2"));
-            return s.ToString();
+            return Convert.ToHexString(data).ToLowerInvariant();
         }
 
         private async Task SubscribeAsync(string busAddress, string bundleId, CancellationToken cancellationToken)

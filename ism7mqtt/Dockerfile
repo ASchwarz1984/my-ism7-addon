@@ -5,8 +5,12 @@ ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
 # Self-contained, musl-targeted binaries so they run on the Alpine-based
 # Home Assistant base image without a separate .NET runtime.
 # This mirrors the upstream ism7mqtt Dockerfile build steps.
+#
+# Pin the build stage to the native build platform ($BUILDPLATFORM) so the
+# cross-compile runs natively (e.g. on amd64 CI) instead of under slow QEMU
+# emulation when targeting arm64. The binaries are cross-published per RID.
 # ---------------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 WORKDIR /app
 
 COPY src/ism7ssl/    ./ism7ssl/

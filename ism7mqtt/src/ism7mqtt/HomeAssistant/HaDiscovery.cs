@@ -58,6 +58,44 @@ namespace ism7mqtt.HomeAssistant
             return _config.Devices.SelectMany(GetDiscoveryInfo);
         }
 
+        public async Task PublishBridgeAvailabilityAsync(string ip, string stateTopic, CancellationToken cancellationToken)
+        {
+            var objectId = LaunderHomeassistantId($"{_discoveryId}_bridge_connectivity");
+            var discoveryTopic = $"homeassistant/binary_sensor/{objectId}/config";
+            var message = new JsonObject
+            {
+                { "unique_id", objectId },
+                { "name", "Verbindung" },
+                { "state_topic", stateTopic },
+                { "payload_on", "online" },
+                { "payload_off", "offline" },
+                { "device_class", "connectivity" },
+                { "entity_category", "diagnostic" },
+                {
+                    "device", new JsonObject
+                    {
+                        { "configuration_url", $"http://{ip}/" },
+                        { "manufacturer", "Wolf" },
+                        { "model", "ISM7" },
+                        { "name", $"{_discoveryId} ISM7" },
+                        {
+                            "connections", new JsonArray
+                            (
+                                new JsonArray("ip_dev", $"{ip}_bridge")
+                            )
+                        }
+                    }
+                }
+            };
+            var data = JsonSerializer.Serialize(message, JsonContext.Default.JsonObject);
+            var payload = new MqttApplicationMessageBuilder()
+                .WithTopic(discoveryTopic)
+                .WithPayload(data)
+                .WithQualityOfServiceLevel(QosLevel)
+                .Build();
+            await _mqttClient.PublishAsync(payload, cancellationToken);
+        }
+
         private string LaunderHomeassistantId(string id) {
             id = id.Replace("ä", "ae")
                 .Replace("ö", "oe")

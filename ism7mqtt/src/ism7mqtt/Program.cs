@@ -107,9 +107,14 @@ namespace ism7mqtt
                     };
                     using (var mqttClient = new MqttFactory().CreateMqttClient())
                     {
+                        var bridgeStateTopic = $"Wolf/{ip}/bridge/state";
                         var mqttOptionBuilder = new MqttClientOptionsBuilder()
                             .WithTcpServer(mqttHost, mqttPort)
-                            .WithClientId($"Wolf_{ip.Replace(".", String.Empty)}");
+                            .WithClientId($"Wolf_{ip.Replace(".", String.Empty)}")
+                            .WithWillTopic(bridgeStateTopic)
+                            .WithWillPayload("offline")
+                            .WithWillRetain(true)
+                            .WithWillQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce);
                         if (!String.IsNullOrEmpty(mqttUsername) || !String.IsNullOrEmpty(mqttPassword))
                         {
                             mqttOptionBuilder = mqttOptionBuilder.WithCredentials(mqttUsername, mqttPassword);
@@ -141,17 +146,41 @@ namespace ism7mqtt
                         if (!String.IsNullOrEmpty(discoveryId))
                         {
                             await mqttClient.SubscribeAsync("homeassistant/status");
-                            client.OnInitializationFinishedAsync = (config, c) =>
+                        }
+                        client.OnInitializationFinishedAsync = async (config, c) =>
+                        {
+                            // the ISM7 connection is up and data is flowing
+                            Console.WriteLine($"connected to ISM7 ({ip}) - bridge online");
+                            await PublishBridgeStateAsync(mqttClient, bridgeStateTopic, true, c);
+                            if (!String.IsNullOrEmpty(discoveryId))
                             {
-                                _haDiscovery =  new HaDiscovery(config, mqttClient, discoveryId, localizer)
+                                _haDiscovery = new HaDiscovery(config, mqttClient, discoveryId, localizer)
                                 {
-                                    EnableDebug = enableDebug, 
+                                    EnableDebug = enableDebug,
                                     QosLevel = _qos
                                 };
-                                return _haDiscovery.PublishDiscoveryInfo(c);
-                            };
+                                await _haDiscovery.PublishBridgeAvailabilityAsync(ip, bridgeStateTopic, c);
+                                await _haDiscovery.PublishDiscoveryInfo(c);
+                            }
+                        };
+                        try
+                        {
+                            await client.RunAsync(password, cts.Token);
                         }
-                        await client.RunAsync(password, cts.Token);
+                        finally
+                        {
+                            // best-effort: mark the bridge offline while the mqtt
+                            // connection is still usable (the LWT covers hard crashes)
+                            try
+                            {
+                                if (mqttClient.IsConnected)
+                                    await PublishBridgeStateAsync(mqttClient, bridgeStateTopic, false, CancellationToken.None);
+                            }
+                            catch
+                            {
+                                // ignored - shutting down anyway
+                            }
+                        }
                     }
                 }
                 catch (OperationCanceledException)
@@ -159,11 +188,24 @@ namespace ism7mqtt
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine(ex);
+                    Console.Error.WriteLine($"FATAL: lost connection to ISM7 ({ip}): {ex.Message}");
+                    if (enableDebug)
+                        Console.Error.WriteLine(ex);
                     cts.Cancel();
                     throw;
                 }
             }
+        }
+
+        private static Task PublishBridgeStateAsync(IMqttClient mqttClient, string topic, bool online, CancellationToken cancellationToken)
+        {
+            var payload = new MqttApplicationMessageBuilder()
+                .WithTopic(topic)
+                .WithPayload(online ? "online" : "offline")
+                .WithRetainFlag()
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build();
+            return mqttClient.PublishAsync(payload, cancellationToken);
         }
 
         private static string GetEnvString(string name, string defaultValue = default)

@@ -3,7 +3,7 @@ build_from:
   amd64: ghcr.io/home-assistant/amd64-base:latest
   armv7: ghcr.io/home-assistant/armv7-base:latest
 args:
-  VERSION: "1.1.1"
+  VERSION: "1.1.2"
 labels:
   org.opencontainers.image.title: "Ism7MQTT (self-built)"
   org.opencontainers.image.source: "https://github.com/aschwarz1984/my-ism7-addon"

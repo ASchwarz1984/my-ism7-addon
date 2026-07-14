@@ -57,11 +57,30 @@ namespace ism7mqtt
 
         private async Task<Stream> ConnectAsync(CancellationToken cancellationToken)
         {
+            // The ISM7 gateway reboots itself every night (~4am) to sync with the Wolf portal.
+            // While it is coming back up the TCP connect can succeed but the TLS handshake stalls
+            // forever. Without a timeout the process would hang instead of exiting, which prevents
+            // the run.sh restart loop from reconnecting. Fail fast so we get restarted and retry.
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
             var tcp = new TcpClient();
-            await tcp.ConnectAsync(_host, _config.TcpPort, cancellationToken);
-            var ssl = new Ism7SslStream(tcp.Client);
-            await ssl.AuthenticateAsClientAsync(cancellationToken);
-            return ssl;
+            try
+            {
+                await tcp.ConnectAsync(_host, _config.TcpPort, timeoutCts.Token);
+                var ssl = new Ism7SslStream(tcp.Client);
+                await ssl.AuthenticateAsClientAsync(timeoutCts.Token);
+                return ssl;
+            }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                tcp.Dispose();
+                throw new TimeoutException($"timeout while connecting to ISM7 ({_host}) - device may be rebooting");
+            }
+            catch
+            {
+                tcp.Dispose();
+                throw;
+            }
         }
 
         public Task OnCommandAsync(string mqttTopic, JsonObject data, CancellationToken cancellationToken)

@@ -153,6 +153,12 @@ namespace ism7mqtt.HomeAssistant
                 var discoveryTopicSSuffix = GetDiscoveryTopicSuffix(descriptor);
                 string stateTopic = $"{device.MqttTopic}/{parameter.MqttName}{deduplicator}{discoveryTopicSSuffix}";
                 message.Add("state_topic", stateTopic);
+                if (!String.IsNullOrEmpty(BridgeStateTopic))
+                {
+                    message.Add("availability_topic", BridgeStateTopic);
+                    message.Add("payload_available", "online");
+                    message.Add("payload_not_available", "offline");
+                }
 
                 if (descriptor.IsWritable)
                 {

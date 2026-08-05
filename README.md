@@ -59,6 +59,10 @@ which can cause connection drops or missing updates. Mitigations:
   (via the File editor add-on) and remove whole device sections or individual
   numeric parameter ids, then restart.
 
+When the ISM7 connection drops, all entities published by that bridge are marked
+`unavailable` in Home Assistant. Their last MQTT values remain retained for history
+and are replaced with fresh readings after the bridge reconnects.
+
 ## Reducing load (and coexisting with the Smartset cloud app)
 
 The ISM7 only accepts **one local connection**, so you can't run the Smartset

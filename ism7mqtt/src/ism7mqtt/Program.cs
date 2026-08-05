@@ -108,6 +108,8 @@ namespace ism7mqtt
                     using (var mqttClient = new MqttFactory().CreateMqttClient())
                     {
                         var bridgeStateTopic = $"Wolf/{ip}/bridge/state";
+                        var ism7Online = 0;
+                        var stopping = 0;
                         var mqttOptionBuilder = new MqttClientOptionsBuilder()
                             .WithTcpServer(mqttHost, mqttPort)
                             .WithClientId($"Wolf_{ip.Replace(".", String.Empty)}")
@@ -122,20 +124,33 @@ namespace ism7mqtt
                         var mqttOptions = mqttOptionBuilder.Build();
                         mqttClient.DisconnectedAsync += async e =>
                         {
+                            if (cts.IsCancellationRequested || Volatile.Read(ref stopping) != 0)
+                                return;
                             Console.Error.WriteLine("mqtt disconnected - reconnecting in 5 seconds");
-                            await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
                             try
                             {
+                                await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+                                if (Volatile.Read(ref stopping) != 0)
+                                    return;
                                 await mqttClient.ConnectAsync(mqttOptions, cts.Token);
+                                await SubscribeMqttTopicsAsync(mqttClient, ip, !String.IsNullOrEmpty(discoveryId));
+                                if (Volatile.Read(ref ism7Online) != 0)
+                                {
+                                    await PublishBridgeStateAsync(mqttClient, bridgeStateTopic, true, cts.Token);
+                                    if (_haDiscovery is not null)
+                                        await _haDiscovery.PublishDiscoveryInfo(cts.Token);
+                                }
                             }
-                            catch
+                            catch (OperationCanceledException) when (cts.IsCancellationRequested)
                             {
-                                Console.Error.WriteLine("reconnect failed");
+                            }
+                            catch (Exception ex) when (!cts.IsCancellationRequested)
+                            {
+                                Console.Error.WriteLine($"mqtt reconnect failed: {ex.Message}");
                             }
                         };
                         await mqttClient.ConnectAsync(mqttOptions, cts.Token);
-                        await mqttClient.SubscribeAsync($"Wolf/{ip}/+/set");
-                        await mqttClient.SubscribeAsync($"Wolf/{ip}/+/set/#");
+                        await SubscribeMqttTopicsAsync(mqttClient, ip, !String.IsNullOrEmpty(discoveryId));
                         var client = new Ism7Client((config, token) => OnMessage(mqttClient, config, enableDebug, token), parameter, ip, localizer)
                         {
                             Interval = interval,
@@ -143,14 +158,11 @@ namespace ism7mqtt
                         };
                         mqttClient.ApplicationMessageReceivedAsync += x => OnMessage(client, x, enableDebug, cts.Token);
 
-                        if (!String.IsNullOrEmpty(discoveryId))
-                        {
-                            await mqttClient.SubscribeAsync("homeassistant/status");
-                        }
                         client.OnInitializationFinishedAsync = async (config, c) =>
                         {
                             // the ISM7 connection is up and data is flowing
                             Console.WriteLine($"connected to ISM7 ({ip}) - bridge online");
+                            Volatile.Write(ref ism7Online, 1);
                             await PublishBridgeStateAsync(mqttClient, bridgeStateTopic, true, c);
                             if (!String.IsNullOrEmpty(discoveryId))
                             {
@@ -173,6 +185,8 @@ namespace ism7mqtt
                         {
                             // best-effort: mark the bridge offline while the mqtt
                             // connection is still usable (the LWT covers hard crashes)
+                            Volatile.Write(ref stopping, 1);
+                            Volatile.Write(ref ism7Online, 0);
                             try
                             {
                                 if (mqttClient.IsConnected)
@@ -197,6 +211,14 @@ namespace ism7mqtt
                     throw;
                 }
             }
+        }
+
+        private static async Task SubscribeMqttTopicsAsync(IMqttClient mqttClient, string ip, bool subscribeToHomeAssistant)
+        {
+            await mqttClient.SubscribeAsync($"Wolf/{ip}/+/set");
+            await mqttClient.SubscribeAsync($"Wolf/{ip}/+/set/#");
+            if (subscribeToHomeAssistant)
+                await mqttClient.SubscribeAsync("homeassistant/status");
         }
 
         private static Task PublishBridgeStateAsync(IMqttClient mqttClient, string topic, bool online, CancellationToken cancellationToken)

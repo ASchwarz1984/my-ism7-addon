@@ -6468,7 +6468,7 @@
     </NumericConverter16Template>
     <NumericConverter16Template CTID="240102">
       <TelegramNr>10006</TelegramNr>
-      <Type>SS10</Type>
+      <Type>US</Type>
     </NumericConverter16Template>
     <NumericConverter16Template CTID="240103">
       <TelegramNr>12381</TelegramNr>

@@ -19535,17 +19535,18 @@
       <Decimals>1</Decimals>
       <ControlType>NumericInput</ControlType>
     </NumericParameterDescriptor>
-    <NumericParameterDescriptor PTID="240102">
+    <ListParameterDescriptor PTID="240102">
       <Name>Eingang E1</Name>
-      <UnitName>°C</UnitName>
       <Protocol>true</Protocol>
       <RemoveConditionId>False</RemoveConditionId>
       <ReadOnlyConditionId>True</ReadOnlyConditionId>
       <InactiveConditionId>False</InactiveConditionId>
       <IsSnapshotTransmitEnabled>false</IsSnapshotTransmitEnabled>
-      <Decimals>1</Decimals>
-      <ControlType>NumericInput</ControlType>
-    </NumericParameterDescriptor>
+      <MinValueCondition>2000</MinValueCondition>
+      <MaxValueCondition>65088</MaxValueCondition>
+      <ControlType>ComboBoxText</ControlType>
+      <KeyValueList>65088;Geöffnet;2000;Geschlossen</KeyValueList>
+    </ListParameterDescriptor>
     <NumericParameterDescriptor PTID="240103">
       <Name>Aktuelle angeforderte Geräteleistung</Name>
       <UnitName>%</UnitName>

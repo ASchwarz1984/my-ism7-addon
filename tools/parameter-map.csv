@@ -229,7 +229,7 @@
 "240000","BWL-1S","240099","Leistungsklasse","","NumericInput","False","False","True"
 "240000","BWL-1S","240100","Drehzahl ZHP","%","NumericInput","False","False","True"
 "240000","BWL-1S","240101","Kältemitteltemperatur (ICT)","°C","NumericInput","False","False","True"
-"240000","BWL-1S","240102","Eingang E1","°C","NumericInput","False","False","True"
+"240000","BWL-1S","240102","Eingang E1","","ComboBoxText","False","False","True"
 "240000","BWL-1S","240103","Aktuelle angeforderte Geräteleistung","%","NumericInput","False","False","True"
 "240000","BWL-1S","240104","Verdichterstarts","","NumericInput","False","False","True"
 "240000","BWL-1S","240105","Laufzeit Verdichter","Std","NumericInput","False","False","True"

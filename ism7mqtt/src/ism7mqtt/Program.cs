@@ -43,6 +43,8 @@ namespace ism7mqtt
             _useSeparateTopics = GetEnvBool("ISM7_SEPARATE");
             _retain = GetEnvBool("ISM7_RETAIN");
             int interval = GetEnvInt32("ISM7_INTERVAL", 60);
+            int startupTimeout = GetEnvInt32("ISM7_STARTUP_TIMEOUT", 90);
+            bool serializePushSubscribes = GetEnvBool("ISM7_SERIALIZE_PUSH_SUBSCRIBES");
             string discoveryId = GetEnvString("ISM7_HOMEASSISTANT_ID");
             string language = GetEnvString("ISM7_LANGUAGE", "DEU");
             var options = new OptionSet
@@ -58,6 +60,8 @@ namespace ism7mqtt
                 {"s|separate", "send values to separate mqtt topics - also disables json payload", x=> _useSeparateTopics = x != null},
                 {"retain", "retain mqtt messages", x=> _retain = x != null},
                 {"interval=", "push interval in seconds (defaults to 60)", (int x) => interval = x},
+                {"startup-timeout=", "timeout in seconds for each startup bundle response (defaults to 90)", (int x) => startupTimeout = x},
+                {"serialize-push-subscribes", "wait for each push subscription response during startup (for some FW5.20 devices; defaults to false)", x => serializePushSubscribes = x != null},
                 {"hass-id=", "HomeAssistant auto-discovery device id/entity prefix (implies --separate and --retain)", x => discoveryId = x},
                 {"l|lang=", "language for HA localization (DEU,CHN,GRC,EST,HRV,LVA,LTU,ROU,ITA,ESP,FRA,POL,CZE,SVK,RUS,DNK,HUN,GBR,TUR,NLD,BUL,POR)", x => language = x},
                 {"d|debug", "dump raw xml messages", x => enableDebug = x != null},
@@ -85,6 +89,12 @@ namespace ism7mqtt
             if (!File.Exists(parameter))
             {
                 Console.Error.WriteLine($"'{parameter}' does not exist");
+                return;
+            }
+            if (startupTimeout <= 0)
+            {
+                Console.Error.WriteLine("Startup timeout must be greater than zero.");
+                Environment.ExitCode = 1;
                 return;
             }
 
@@ -154,6 +164,8 @@ namespace ism7mqtt
                         var client = new Ism7Client((config, token) => OnMessage(mqttClient, config, enableDebug, token), parameter, ip, localizer)
                         {
                             Interval = interval,
+                            StartupTimeout = startupTimeout,
+                            SerializePushSubscribes = serializePushSubscribes,
                             EnableDebug = enableDebug
                         };
                         mqttClient.ApplicationMessageReceivedAsync += x => OnMessage(client, x, enableDebug, cts.Token);

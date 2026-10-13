@@ -44,9 +44,20 @@ because the .NET binaries are compiled from source. Subsequent starts are fast.
 | `ism7_password`     | Password printed on the ISM7 sticker.                        |
 | `language`          | Language for entity names / list values.                     |
 | `interval`          | Poll interval in seconds (default 60).                       |
+| `startup_timeout`   | Maximum wait for each startup bundle response, in seconds (default 90; must be positive). |
+| `serialize_push_subscribes` | Wait for each startup push subscription response before sending the next (default false). |
 | `additional_devices`| List of extra ISM7 modules (`device_name`, `ism7_ip`, ...).  |
 | `mqtt_*`            | Optional manual MQTT broker settings (auto-discovered if omitted). |
 | `debug_logging`     | Enable verbose protocol logging.                             |
+
+`startup_timeout` and `serialize_push_subscribes` apply to the primary module
+and all `additional_devices`. A missing startup response causes the bridge to
+stop; the add-on retries after 10 seconds. This is separate from the existing
+30-second TCP/TLS connection timeout.
+
+If an ISM7 running firmware 5.20 (including 5.20.6) stops updating during startup,
+enable `serialize_push_subscribes` and restart the add-on. Leave it disabled
+otherwise to preserve the existing subscription behavior.
 
 ## Important, if some entities are unavailable
 

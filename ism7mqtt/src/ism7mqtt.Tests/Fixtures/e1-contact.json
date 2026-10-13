@@ -1,0 +1,11 @@
+{
+  "TcpPort": {{TCP_PORT}},
+  "Devices": [
+    {
+      "ReadBusAddress": "0x25",
+      "WriteBusAddress": null,
+      "DeviceTemplateId": 240000,
+      "Parameter": [240102]
+    }
+  ]
+}

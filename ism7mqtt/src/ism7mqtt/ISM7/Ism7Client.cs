@@ -31,6 +31,12 @@ namespace ism7mqtt
 
         public int Interval { get; set; }
 
+        public int StartupTimeout { get; set; } = 90;
+
+        private TimeSpan StartupTimeoutSpan => TimeSpan.FromSeconds(StartupTimeout);
+
+        public bool SerializePushSubscribes { get; set; } = false;
+
         public bool EnableDebug { get; set; }
 
         public Func<Ism7Config, CancellationToken, Task> OnInitializationFinishedAsync { get; set; }
@@ -45,6 +51,8 @@ namespace ism7mqtt
 
         public async Task RunAsync(string password, CancellationToken cancellationToken)
         {
+            if (StartupTimeout <= 0)
+                throw new ArgumentOutOfRangeException(nameof(StartupTimeout), "Startup timeout must be greater than zero.");
             using (_sslStream = await ConnectAsync(cancellationToken))
             {
                 var fillPipeTask = FillPipeAsync(_pipe.Writer, cancellationToken);
@@ -252,11 +260,19 @@ namespace ism7mqtt
             return Convert.ToHexString(data).ToLowerInvariant();
         }
 
-        private async Task SubscribeAsync(string busAddress, string bundleId, CancellationToken cancellationToken)
+        private async Task SubscribeAsync(string busAddress, string bundleId, CancellationToken cancellationToken, SemaphoreSlim semaphore = null)
         {
             var infoReads = _config.GetBundle(bundleId);
             bundleId = NextBundleId();
             _dispatcher.Subscribe(x => x.MessageType == PayloadType.TgrBundleResp && ((TelegramBundleResp) x).BundleId == bundleId, OnPushResponseAsync);
+            if (semaphore is not null)
+            {
+                _dispatcher.SubscribeOnce(x => x.MessageType == PayloadType.TgrBundleResp && ((TelegramBundleResp)x).BundleId == bundleId, (_, _) =>
+                {
+                    semaphore.Release();
+                    return Task.CompletedTask;
+                });
+            }
             foreach (var infoRead in infoReads)
             {
                 infoRead.BusAddress = busAddress;
@@ -324,7 +340,7 @@ namespace ism7mqtt
                         infoRead.Seq = NextSequenceId();
                     }
 
-                    await semaphore.WaitAsync(cancellationToken);
+                    await WaitForBundleResponseAsync(semaphore, StartupTimeoutSpan, cancellationToken);
                     await SendAsync(new TelegramBundleReq
                     {
                         AbortOnError = false,
@@ -339,17 +355,33 @@ namespace ism7mqtt
             // Wait for the last pull response to be fully processed before subscribing.
             // Older ISM7 hardware (HW 1.0) corrupts responses when pull and push subscribe requests overlap. So we are deferring all push subscribes until here.
             // This restores the startup order that was present until incl. v0.0.19
-            await semaphore.WaitAsync(cancellationToken);
+            await WaitForBundleResponseAsync(semaphore, StartupTimeoutSpan, cancellationToken);
 
-            // Phase 2: send push subscribes after all pulls are complete
+            // Some FW5.20 devices need each push subscription acknowledged before the next.
             foreach (var (busAddress, bundleId) in pendingSubscriptions)
             {
-                await SubscribeAsync(busAddress, bundleId, cancellationToken);
+                await SubscribeAsync(busAddress, bundleId, cancellationToken, SerializePushSubscribes ? semaphore : null);
+                if (SerializePushSubscribes)
+                    await WaitForBundleResponseAsync(semaphore, StartupTimeoutSpan, cancellationToken);
             }
 
             if (OnInitializationFinishedAsync is not null)
             {
                 await OnInitializationFinishedAsync(_config, cancellationToken);
+            }
+        }
+
+        private static async Task WaitForBundleResponseAsync(SemaphoreSlim semaphore, TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeout);
+            try
+            {
+                await semaphore.WaitAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException("Shutdown ism7mqtt due to timeout during startup.");
             }
         }
 

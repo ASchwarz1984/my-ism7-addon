@@ -26,8 +26,21 @@ The build is self-contained: it restores NuGet packages, compiles
 `ism7mqtt` + `ism7config` as musl self-contained binaries, and copies them into
 the Home Assistant base image.
 
+## Startup regression tests (requires .NET 10 SDK)
+
+```powershell
+dotnet test .\ism7mqtt\src\ism7mqtt.Tests\ism7mqtt.Tests.csproj -c Release
+```
+
+The tests use a local fake ISM7 server; no heater or MQTT broker is required.
+
 ## Notes
 
+- Version 1.1.7 selectively ports upstream startup-response timeouts (#228) and
+  opt-in serialized push subscriptions (#240, commit `6a0aeca339`). The startup
+  regression tests are adapted from that upstream revision.
+- Keep the local TCP/TLS timeout, MQTT entity availability, reconnect handling,
+  and BWL-1S E1 metadata correction when refreshing upstream files.
 - Versioning uses MinVer. Without git tags the build would default to `0.0.0`,
   so the Dockerfile sets `MINVERVERSIONOVERRIDE` from the `VERSION` build-arg.
 - The program is GPL-3.0; keep `ism7mqtt/src/` (the corresponding source)

@@ -4,6 +4,15 @@ export CONFIG_PATH=/data/options.json
 
 export DEBUG_LOGGING=$(bashio::config 'debug_logging')
 
+export ISM7_STARTUP_TIMEOUT=90
+if bashio::config.has_value 'startup_timeout'; then
+    export ISM7_STARTUP_TIMEOUT="$(bashio::config 'startup_timeout')"
+fi
+export ISM7_SERIALIZE_PUSH_SUBSCRIBES=false
+if bashio::config.has_value 'serialize_push_subscribes'; then
+    export ISM7_SERIALIZE_PUSH_SUBSCRIBES="$(bashio::config 'serialize_push_subscribes')"
+fi
+
 
 export ISM7_MQTTHOST="$(bashio::config 'mqtt_host')"
 export ISM7_MQTTPORT="$(bashio::config 'mqtt_port')"

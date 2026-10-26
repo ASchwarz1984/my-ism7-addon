@@ -6,12 +6,14 @@ on:
     paths:
       - "ism7mqtt/src/**"
       - "ism7mqtt/run.sh"
+      - "tools/test-retry-policy.sh"
       - ".github/workflows/tests.yaml"
   pull_request:
     branches: [main]
     paths:
       - "ism7mqtt/src/**"
       - "ism7mqtt/run.sh"
+      - "tools/test-retry-policy.sh"
       - ".github/workflows/tests.yaml"
   workflow_dispatch:
 
@@ -29,6 +31,10 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - name: Check startup wrapper syntax
-        run: bash -n ism7mqtt/run.sh
+        run: |
+          bash -n ism7mqtt/run.sh
+          bash -n tools/test-retry-policy.sh
+      - name: Check bridge retry policy
+        run: bash tools/test-retry-policy.sh
       - name: Run regression tests
         run: dotnet test ism7mqtt/src/ism7mqtt.Tests/ism7mqtt.Tests.csproj --configuration Release

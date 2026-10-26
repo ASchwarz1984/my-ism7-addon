@@ -51,6 +51,44 @@ function run_bridge_with_retries() {
     done
 }
 
+function check_parameter_file() {
+    local parameters="$1"
+    local parameter_count
+
+    if ! parameter_count="$(jq --slurp --exit-status '
+        if length != 1 then
+            error("Expected one JSON document")
+        else
+            .[0]
+        end
+        | if (.Devices | type) != "array" then
+            error("Devices must be an array")
+        else
+            [.Devices[] |
+                if (.Parameter | type) != "array" then
+                    error("Each device must have a Parameter array")
+                else
+                    .Parameter | length
+                end
+            ] | add // 0
+        end
+    ' "$parameters")"; then
+        bashio::log.error "Cannot read parameter file $parameters. Check the JSON syntax and the Devices and Parameter arrays."
+        return 1
+    fi
+
+    bashio::log.info "Parameter file $parameters contains $parameter_count parameters."
+    if (( parameter_count > 150 )); then
+        echo
+        echo "======= WARNING WARNING WARNING ======="
+        echo "Your parameter file $parameters contains $parameter_count parameters!"
+        echo "If you encounter issues with disconnects or some parameters not being updated, read here:"
+        echo "https://github.com/aschwarz1984/my-ism7-addon?tab=readme-ov-file#important-if-some-entities-are-unavailable"
+        echo "======= WARNING WARNING WARNING ======="
+        echo
+    fi
+}
+
 function start_ism7mqtt() {
     export ISM7_HOMEASSISTANT_ID=$1
     export ISM7_IP=$2
@@ -79,16 +117,7 @@ function start_ism7mqtt() {
         fi
     fi
 
-    lines="$(cat $parameters| grep -E '^\s*[0-9]+,?$' | wc -l)"
-    if (( $lines > 150 )); then
-        echo
-        echo "======= WARNING WARNING WARNING ======="
-        echo "Your parameter file $parameters contains a lot of parameters!"
-        echo "If you encounter issues with disconnects or some parameters not being updated, read here:"
-        echo "https://github.com/aschwarz1984/my-ism7-addon?tab=readme-ov-file#important-if-some-entities-are-unavailable"
-        echo "======= WARNING WARNING WARNING ======="
-        echo
-    fi
+    check_parameter_file "$parameters"
 
     # Not really needed, most of it could also be read from env, but helps identifying which process is which
     ISM_ARGS="--hass-id=$ISM7_HOMEASSISTANT_ID --interval=$ISM7_INTERVAL --ipAddress=$ISM7_IP -t $parameters"

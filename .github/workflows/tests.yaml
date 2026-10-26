@@ -6,14 +6,14 @@ on:
     paths:
       - "ism7mqtt/src/**"
       - "ism7mqtt/run.sh"
-      - "tools/test-retry-policy.sh"
+      - "tools/test-*.sh"
       - ".github/workflows/tests.yaml"
   pull_request:
     branches: [main]
     paths:
       - "ism7mqtt/src/**"
       - "ism7mqtt/run.sh"
-      - "tools/test-retry-policy.sh"
+      - "tools/test-*.sh"
       - ".github/workflows/tests.yaml"
   workflow_dispatch:
 
@@ -34,6 +34,9 @@ jobs:
         run: |
           bash -n ism7mqtt/run.sh
           bash -n tools/test-retry-policy.sh
+          bash -n tools/test-parameter-files.sh
+      - name: Check parameter file parsing
+        run: bash tools/test-parameter-files.sh
       - name: Check bridge retry policy
         run: bash tools/test-retry-policy.sh
       - name: Run regression tests

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.9
+
+- Fix startup failing when valid parameter JSON has multiple IDs per line or is
+  minified. Parameter counting now parses the JSON instead of counting lines.
+- Log the actual parameter count, preserve the warning above 150 parameters, and
+  report unreadable or malformed parameter files explicitly.
+
 ## 1.1.8
 
 - Give an unresponsive ISM7 a quiet recovery window: after the initial bridge

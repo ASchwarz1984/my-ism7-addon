@@ -78,6 +78,11 @@ which can cause connection drops or missing updates. Mitigations:
   (via the File editor add-on) and remove whole device sections or individual
   numeric parameter ids, then restart.
 
+Parameter files are parsed as JSON: IDs may share a line or appear one per line.
+The add-on logs the actual parameter count and warns above 150 parameters,
+regardless of formatting. Unreadable files, invalid JSON, or missing `Devices`
+and `Parameter` arrays produce an explicit startup error.
+
 When the ISM7 connection drops, all entities published by that bridge are marked
 `unavailable` in Home Assistant. Their last MQTT values remain retained for history
 and are replaced with fresh readings after the bridge reconnects.

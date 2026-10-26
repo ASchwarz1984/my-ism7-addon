@@ -34,17 +34,21 @@ dotnet test .\ism7mqtt\src\ism7mqtt.Tests\ism7mqtt.Tests.csproj -c Release
 
 The tests use a local fake ISM7 server; no heater or MQTT broker is required.
 
-## Wrapper retry regression tests (requires Bash)
+## Wrapper regression tests (requires Bash and jq)
 
 ```sh
 bash -n ism7mqtt/run.sh
 bash -n tools/test-retry-policy.sh
+bash -n tools/test-parameter-files.sh
+bash tools/test-parameter-files.sh
 bash tools/test-retry-policy.sh
 ```
 
 The tests stub the bridge and sleeps to check repeated retry/cooldown cycles,
 including zero-status process exits and independent modules, without contacting
 an ISM7 or waiting for real delays.
+Parameter-file tests cover inline, pretty-printed, compact and CRLF JSON,
+empty arrays, the 150/151 warning boundary, and explicit invalid-file errors.
 
 ## Notes
 

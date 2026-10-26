@@ -34,6 +34,18 @@ dotnet test .\ism7mqtt\src\ism7mqtt.Tests\ism7mqtt.Tests.csproj -c Release
 
 The tests use a local fake ISM7 server; no heater or MQTT broker is required.
 
+## Wrapper retry regression tests (requires Bash)
+
+```sh
+bash -n ism7mqtt/run.sh
+bash -n tools/test-retry-policy.sh
+bash tools/test-retry-policy.sh
+```
+
+The tests stub the bridge and sleeps to check repeated retry/cooldown cycles,
+including zero-status process exits and independent modules, without contacting
+an ISM7 or waiting for real delays.
+
 ## Notes
 
 - Version 1.1.7 selectively ports upstream startup-response timeouts (#228) and

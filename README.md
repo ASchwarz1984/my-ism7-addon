@@ -52,8 +52,16 @@ because the .NET binaries are compiled from source. Subsequent starts are fast.
 
 `startup_timeout` and `serialize_push_subscribes` apply to the primary module
 and all `additional_devices`. A missing startup response causes the bridge to
-stop; the add-on retries after 10 seconds. This is separate from the existing
+stop and enter the retry cycle below. This is separate from the existing
 30-second TCP/TLS connection timeout.
+
+Each module starts immediately, then retries up to three times with 10 seconds
+between attempts when its bridge process exits. After the initial attempt and
+three retries have ended, the add-on waits five minutes before starting a new
+cycle. Both the short retries and the five-minute cooldown are logged with the
+device name and IP address. Retry cycles are independent for each module and
+apply regardless of the bridge process's exit code; a running bridge is never
+interrupted by the cooldown.
 
 If an ISM7 running firmware 5.20 (including 5.20.6) stops updating during startup,
 enable `serialize_push_subscribes` and restart the add-on. Leave it disabled

@@ -32,6 +32,25 @@ fi
 
 
 
+function run_bridge_with_retries() {
+    local retries=0
+
+    while true; do
+        echo "Starting $*" | ts
+        "$@" 2>&1 | ts || echo "ism7mqtt unexpectedly quit with return code $?"
+
+        if (( retries < 3 )); then
+            retries=$((retries + 1))
+            echo "ISM7 $ISM7_HOMEASSISTANT_ID ($ISM7_IP): retry $retries/3 in 10 seconds." | ts
+            sleep 10
+        else
+            echo "ISM7 $ISM7_HOMEASSISTANT_ID ($ISM7_IP): initial attempt and 3 retries ended; waiting 5 minutes before trying again." | ts
+            sleep 300
+            retries=0
+        fi
+    done
+}
+
 function start_ism7mqtt() {
     export ISM7_HOMEASSISTANT_ID=$1
     export ISM7_IP=$2
@@ -77,12 +96,7 @@ function start_ism7mqtt() {
         ISM_ARGS+=" -d"
     fi
 
-    while [ true ]; do
-        echo "Starting ism7mqtt $ISM_ARGS" | ts
-        /app/ism7mqtt $ISM_ARGS 2>&1 | ts || echo "ism7mqtt unexpectedly quit with return code $?"
-        sleep 10
-    done
-
+    run_bridge_with_retries /app/ism7mqtt $ISM_ARGS
 }
 
 HA_DISCOVERY_ID=$(bashio::config 'device_name')

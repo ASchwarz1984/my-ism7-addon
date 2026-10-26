@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.8
+
+- Give an unresponsive ISM7 a quiet recovery window: after the initial bridge
+  attempt and three retries spaced 10 seconds apart, wait five minutes before
+  starting another cycle.
+- Log retry numbers and cooldowns separately for each configured module.
+
 ## 1.1.7
 
 - Stop startup if an ISM7 parameter bundle receives no response, allowing the
